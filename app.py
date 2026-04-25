@@ -1,14 +1,40 @@
+# from flask import Flask, request, jsonify, render_template
+# import numpy as np
+# import joblib
+# from tensorflow.keras.models import load_model
+# from scipy.signal import resample   # ⭐ IMPORTANT (install scipy if missing)
+
+# app = Flask(__name__)
+
+# # -------- Load trained model and scaler --------
+# model = load_model("eeg_1dcnn_focal_nonfocal.h5")
+# scaler = joblib.load("eeg_scaler.pkl")
+
 from flask import Flask, request, jsonify, render_template
 import numpy as np
 import joblib
+import os
+import gdown
 from tensorflow.keras.models import load_model
-from scipy.signal import resample   # ⭐ IMPORTANT (install scipy if missing)
+from scipy.signal import resample
 
 app = Flask(__name__)
 
-# -------- Load trained model and scaler --------
-model = load_model("eeg_1dcnn_focal_nonfocal.h5")
-scaler = joblib.load("eeg_scaler.pkl")
+# -------- Paths --------
+MODEL_PATH = "eeg_1dcnn_focal_nonfocal.h5"
+SCALER_PATH = "eeg_scaler.pkl"
+
+# -------- Google Drive IDs --------
+MODEL_ID = "1JaR8iDovU6_HPfhtH4VevA0KgYoWgCer"
+
+# -------- Download model if not exists --------
+if not os.path.exists(MODEL_PATH):
+    print("Downloading model...")
+    gdown.download(f"https://drive.google.com/uc?id={MODEL_ID}", MODEL_PATH, quiet=False)
+
+# -------- Load model & scaler --------
+model = load_model(MODEL_PATH)
+scaler = joblib.load(SCALER_PATH)
 
 # -------- Home Page --------
 @app.route("/")
