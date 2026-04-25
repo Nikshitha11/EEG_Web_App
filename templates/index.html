@@ -1,0 +1,347 @@
+<!-- <!DOCTYPE html>
+<html>
+<head>
+<title>Epileptic EEG Classification</title>
+
+<style>
+body { font-family: Segoe UI, sans-serif; background:#f4f4f4; }
+.card {
+  width: 900px; margin:40px auto; background:white;
+  border-radius:20px; padding:30px;
+  box-shadow:0 10px 30px rgba(0,0,0,.2);
+}
+.title { background:#e3f2fd; padding:12px; border-radius:12px;
+  text-align:center; font-size:22px; font-weight:bold; }
+.subtitle { background:#fdecea; padding:10px; border-radius:10px;
+  text-align:center; margin:15px 0; }
+
+.grid {
+  display:grid; grid-template-columns:repeat(2,1fr);
+  gap:20px; margin-top:20px;
+}
+.box {
+  border:1px solid #ccc; border-radius:12px; padding:10px;
+  text-align:center;
+}
+canvas, img {
+  width:100%; height:180px; background:#fafafa;
+}
+button {
+  width:100%; margin-top:25px; padding:14px;
+  background:#2196f3; color:white;
+  border:none; border-radius:12px; font-size:18px;cursor: pointer;
+}
+.result { margin-top:20px; text-align:center;
+  font-size:20px; font-weight:bold; }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <div class="title">Epileptic EEG Classification</div>
+  <div class="subtitle">Upload one EEG signal (10240 samples)</div>
+
+  <input type="file" id="fileInput" accept=".csv">
+
+  <div class="grid">
+    <div class="box">Waveform <canvas id="wave"></canvas></div>
+    <div class="box">Energy Envelope <canvas id="env"></canvas></div>
+    <div class="box">Amplitude Histogram <canvas id="hist"></canvas></div>
+    <div class="box">CWT Scalogram <img id="scalogram"></div>
+  </div>
+
+  <button onclick="predict()">Predict</button>
+  <div class="result" id="result"></div>
+</div>
+
+<script>
+let signal = [];
+
+document.getElementById("fileInput").onchange = function () {
+  const reader = new FileReader();
+  reader.onload = e => {
+    signal = e.target.result.trim().split(",").map(Number);
+
+    drawLine(signal, "wave", "#1976d2");                // BLUE
+    drawLine(signal.map(Math.abs), "env", "#d32f2f");   // RED
+    drawHist(signal);                                  // GRAY
+    fetchScalogram();                                  // COLOR MAP
+  };
+  reader.readAsText(this.files[0]);
+};
+
+function drawLine(sig, id, color) {
+  const c = document.getElementById(id);
+  const ctx = c.getContext("2d");
+
+  c.width = c.offsetWidth;
+  c.height = c.offsetHeight;
+  ctx.clearRect(0, 0, c.width, c.height);
+
+  const min = Math.min(...sig);
+  const max = Math.max(...sig);
+  const range = max - min || 1;
+
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+
+  sig.forEach((v, i) => {
+    const x = (i / sig.length) * c.width;
+    const y = c.height - ((v - min) / range) * c.height;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+
+  ctx.stroke();
+}
+
+function drawHist(sig) {
+  const c = document.getElementById("hist");
+  const ctx = c.getContext("2d");
+
+  c.width = c.offsetWidth;
+  c.height = c.offsetHeight;
+  ctx.clearRect(0, 0, c.width, c.height);
+
+  const bins = 30;
+  const hist = new Array(bins).fill(0);
+  const min = Math.min(...sig);
+  const max = Math.max(...sig);
+  const range = max - min || 1;
+
+  sig.forEach(v => {
+    const idx = Math.floor(((v - min) / range) * (bins - 1));
+    hist[idx]++;
+  });
+
+  const maxCount = Math.max(...hist);
+  ctx.fillStyle = "#555";
+
+  hist.forEach((count, i) => {
+    const barHeight = (count / maxCount) * c.height;
+    ctx.fillRect(
+      i * (c.width / bins),
+      c.height - barHeight,
+      c.width / bins - 2,
+      barHeight
+    );
+  });
+}
+
+function fetchScalogram() {
+  fetch("/scalogram", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ signal })
+  })
+  .then(r => r.json())
+  .then(d => {
+    document.getElementById("scalogram").src =
+      "data:image/png;base64," + d.image;
+  });
+}
+
+function predict() {
+  fetch("/predict", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ signal })
+  })
+  .then(r => r.json())
+  .then(d => {
+    document.getElementById("result").innerText =
+      "Predicted Class: " + d.prediction;
+  });
+}
+</script>
+
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Epileptic EEG Classification</title>
+
+<style>
+body {
+    font-family: Segoe UI, sans-serif;
+    background: #f3f3f3;
+}
+.card {
+    width: 850px;
+    margin: 40px auto;
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.title {
+    background: #e3f2fd;
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+}
+.subtitle {
+    background: #fdecea;
+    padding: 10px;
+    border-radius: 10px;
+    text-align: center;
+    margin: 15px 0;
+}
+.preview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 20px;
+}
+.preview {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+}
+canvas {
+    width: 100%;
+    height: 150px;
+    background: #fafafa;
+}
+button {
+    width: 100%;
+    margin-top: 25px;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: #2196f3;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+}
+.result {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+    <div class="title">Epileptic EEG Classification</div>
+    <div class="subtitle">Upload EEG signal</div>
+
+    <input type="file" id="fileInput" accept=".csv">
+
+    <div class="preview-grid">
+        <div class="preview">
+            EEG waveform
+            <canvas id="waveCanvas"></canvas>
+        </div>
+        <div class="preview">
+            Energy envelope
+            <canvas id="energyCanvas"></canvas>
+        </div>
+        <div class="preview">
+            Amplitude histogram
+            <canvas id="histCanvas"></canvas>
+        </div>
+    </div>
+
+    <button onclick="predict()">Predict</button>
+
+    <div class="result" id="result"></div>
+</div>
+
+<script>
+let eegSignal = [];
+
+document.getElementById("fileInput").addEventListener("change", function() {
+    const reader = new FileReader();
+    reader.onload = e => {
+        eegSignal = e.target.result.trim().split(",").map(Number);
+        drawWave(eegSignal);
+        drawEnergy(eegSignal);
+        drawHist(eegSignal);
+    };
+    reader.readAsText(this.files[0]);
+});
+
+function drawWave(sig) {
+    drawLine(sig, "waveCanvas", "#1976d2");
+}
+
+function drawEnergy(sig) {
+    const energy = sig.map(v => Math.abs(v));
+    drawLine(energy, "energyCanvas", "#d32f2f");
+}
+
+function drawHist(sig) {
+    const canvas = document.getElementById("histCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const bins = 30;
+    const min = Math.min(...sig);
+    const max = Math.max(...sig);
+    const hist = new Array(bins).fill(0);
+
+    sig.forEach(v => {
+        const idx = Math.floor((v-min)/(max-min) * (bins-1));
+        hist[idx]++;
+    });
+
+    const maxCount = Math.max(...hist);
+    hist.forEach((h,i) => {
+        const x = i*(canvas.width/bins);
+        const y = canvas.height*(1-h/maxCount);
+        ctx.fillStyle="#555";
+        ctx.fillRect(x,y,canvas.width/bins-2,canvas.height-y);
+    });
+}
+
+function drawLine(sig, canvasId, color) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext("2d");
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const min = Math.min(...sig);
+    const max = Math.max(...sig);
+
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    sig.forEach((v,i) => {
+        const x = i/sig.length * canvas.width;
+        const range = (max - min) || 1;
+        const y = canvas.height - (v-min)/range * canvas.height;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+}
+
+function predict() {
+    fetch("/predict", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({signal: eegSignal})
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("result").innerText =
+            "Predicted Class : " + data.prediction;
+    });
+}
+</script>
+
+</body>
+</html>
